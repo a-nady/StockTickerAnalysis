@@ -112,16 +112,11 @@ def setup(sub):
    if sub == "":
       sub = "wallstreetbets"
 
-   #with open("config.json") as json_data_file:
-    #  data = json.load(json_data_file)
+   with open("praw.ini") as data_file:
+     data = data_file.read()
 
    # create a reddit instance
-   reddit = praw.Reddit(
-      client_id="kGFkzyxdE9xM8g",
-      client_secret="MymW4t65ix4Mbnbp2FOs2ZF5dU6tsg",
-      password="Cheese123",
-      user_agent= "Analyzing tickers 1.0 by /u/tickerAnalysis",
-      username="tickerAnalysis",
+   reddit = praw.Reddit(praw.ini
    )  
 
 
