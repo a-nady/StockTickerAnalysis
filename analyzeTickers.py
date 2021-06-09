@@ -3,11 +3,14 @@ import sys
 import praw
 import operator
 import datetime
-import yfinance as yf
 
-# to add the path for Python to search for files to use edited version of vaderSentiment
+# to add the path for Python to search for files to use edited version of vaderSentiment and get_all_tickers
 sys.path.insert(0, 'vaderSentiment/vaderSentiment')
 from vaderSentiment import SentimentIntensityAnalyzer
+sys.path.insert(0, 'get_all_tickers')
+from get_all_tickers import get_tickers as gt
+
+stocks = gt.get_tickers(NYSE=True, NASDAQ=True, AMEX=True)
 
 blacklist_words = [
       "YOLO", "TOS", "CEO", "CFO", "CTO", "DD", "BTFD", "BTD", "WSB", "OK", "RH",
@@ -20,7 +23,7 @@ blacklist_words = [
       "OP", "DJIA", "PS", "AH", "TL", "DR", "JAN", "FEB", "JUL", "AUG",
       "SEP", "SEPT", "OCT", "NOV", "DEC", "FDA", "IV", "ER", "IPO", "RISE"
       "IPA", "URL", "BUT", "SSN", "USD", "CPU", "AT", "GG", "ELON", "TO", "THE", "MOON",
-      "MEME"
+      "MEME", "MUSK"
    ]
 
 def extract_ticker(body, start_index):
@@ -53,15 +56,10 @@ def parse_section(ticker_dict, body):
       if word in ticker_dict:
          ticker_dict[word].count += 1
          ticker_dict[word].bodies.append(body)
-      elif word and word not in blacklist_words:
-         price = yf.Ticker(word).info
-         # if dict only has 1 that means ticker doesnt exist
-         if len(price) == 1:
-            pass
-         else:
-            ticker_dict[word] = Ticker(word)
-            ticker_dict[word].count = 1
-            ticker_dict[word].bodies.append(body)
+      elif word and (word not in blacklist_words) and (word in stocks):
+         ticker_dict[word] = Ticker(word)
+         ticker_dict[word].count = 1
+         ticker_dict[word].bodies.append(body)
 
    # checks for non-$ formatted comments, splits every body into list of words
    word_list = re.sub("[^\w]", " ",  body).split()
@@ -72,16 +70,7 @@ def parse_section(ticker_dict, body):
             ticker_dict[word].count += 1
             ticker_dict[word].bodies.append(body)
       # initial screening of words
-      elif word.isupper() and len(word) != 1 and (word.upper() not in blacklist_words) and len(word) <= 5 and word.isalpha():
-         price = yf.Ticker(word).info
-
-         # if dict retrieved from yfinance only has 1 key that means ticker doesnt exist
-         if len(price) == 1:
-            continue
-         # if the equity does NOT belong within one of the following exchanges (NYSE/NASDAQ/OTC) do not include it
-         elif price['exchangeTimezoneName'] != "America/New_York":
-            print(price['exchangeTimezoneName'])
-            continue
+      elif word.isupper() and len(word) != 1 and (word not in blacklist_words) and (len(word) <= 5) and word.isalpha() and (word in stocks):
          
          print(word)
          # add/adjust value of dictionary
@@ -91,14 +80,6 @@ def parse_section(ticker_dict, body):
 
    return ticker_dict
 
-def get_url(key, value, total_count):
-   # determine whether to use plural or singular
-   mention = ("mentions", "mention") [value == 1]
-   if int(value / total_count * 100) == 0:
-         perc_mentions = "<1"
-   else:
-         perc_mentions = int(value / total_count * 100)
-   
 def final_post(subreddit, text):
    # finding the daily discussino thread to post
    title = str(get_date()) + " | Today's Top 25 Tickers"
@@ -139,7 +120,6 @@ def run(mode, sub, num_submissions):
    
    subreddit = setup(sub)
    hot_posts = subreddit.hot(limit= num_submissions)
-
    
    for count, post in enumerate(hot_posts):
       # if we have not already viewed this post thread
@@ -156,7 +136,7 @@ def run(mode, sub, num_submissions):
          sys.stdout.write("\rProgress: {0} / {1} posts".format(count + 1, num_submissions))
          sys.stdout.flush()
 
-   text = "Amount of Mentions + Their Sentiment Analysis: "
+   text = "{:>20s}".format("Amount of Mentions + Their Sentiment Analysis")
    text += "\n {:20s} | {:20s} | {:20s} | {:20s} | {:20s} \n".format("Ticker", "Mentions", "Bullish (%)", "Neutral (%)", "Bearish (%)")
 
    total_mentions = 0
@@ -216,10 +196,10 @@ class Ticker:
 
 if __name__ == "__main__":
    mode = 0
+   
+   # default is 2, these are usually the 2 stickied discussion threads in subreddits like /r/wallstreetbets, /r/stocks, /r/investing, etc..
+   num_submissions = 2
 
-   # default is 2, these are the 2 stickied threads in subreddits like /r/wallstreetbets, /r/stocks, /r/investing, etc..
-   num_submissions = 1
-
-   sub = "winkerpack"
+   sub = "wallstreetbets"
 
    run(mode, sub, num_submissions)
