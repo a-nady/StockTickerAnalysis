@@ -50,41 +50,44 @@ def parse_section(ticker_dict, body):
       index = body.find('$') + 1
       word = extract_ticker(body, index)
       
-      if word and word not in blacklist_words:
-         try:
-            price = yf.Ticker(word)
-            if word in ticker_dict:
-               ticker_dict[word].count += 1
-               ticker_dict[word].bodies.append(body)
-            else:
-               ticker_dict[word] = Ticker(word)
-               ticker_dict[word].count = 1
-               ticker_dict[word].bodies.append(body)
-         except:
+      if word in ticker_dict:
+         ticker_dict[word].count += 1
+         ticker_dict[word].bodies.append(body)
+      elif word and word not in blacklist_words:
+         price = yf.Ticker(word).info
+         # if dict only has 1 that means ticker doesnt exist
+         if len(price) == 1:
             pass
-   
-   # checks for non-$ formatted comments, splits every body into list of words
-   word_list = re.sub("[^\w]", " ",  body).split()
-   #print(word_list)
-   for word in word_list:
-      # initial screening of words
-      if word.isupper() and len(word) != 1 and (word.upper() not in blacklist_words) and len(word) <= 5 and word.isalpha():
-         # sends request to IEX API to determine whether the current word is a valid ticker
-         # if it isn't, it'll return an error and therefore continue on to the next word
-         price = yf.Ticker(word)
-
-         print(word)
-         #print(word + "fail")
-         #continue
-      
-         # add/adjust value of dictionary
-         if word in ticker_dict:
-            ticker_dict[word].count += 1
-            ticker_dict[word].bodies.append(body)
          else:
             ticker_dict[word] = Ticker(word)
             ticker_dict[word].count = 1
             ticker_dict[word].bodies.append(body)
+
+   # checks for non-$ formatted comments, splits every body into list of words
+   word_list = re.sub("[^\w]", " ",  body).split()
+   #print(word_list)
+   for word in word_list:
+      # check if ticker is in dict already first
+      if word in ticker_dict:
+            ticker_dict[word].count += 1
+            ticker_dict[word].bodies.append(body)
+      # initial screening of words
+      elif word.isupper() and len(word) != 1 and (word.upper() not in blacklist_words) and len(word) <= 5 and word.isalpha():
+         price = yf.Ticker(word).info
+
+         # if dict retrieved from yfinance only has 1 key that means ticker doesnt exist
+         if len(price) == 1:
+            continue
+         # if the equity does NOT belong within one of the following exchanges (NYSE/NASDAQ/OTC) do not include it
+         elif price['exchangeTimezoneName'] != "America/New_York":
+            print(price['exchangeTimezoneName'])
+            continue
+         
+         print(word)
+         # add/adjust value of dictionary
+         ticker_dict[word] = Ticker(word)
+         ticker_dict[word].count = 1
+         ticker_dict[word].bodies.append(body)
 
    return ticker_dict
 
@@ -135,7 +138,7 @@ def run(mode, sub, num_submissions):
    text = ""
    
    subreddit = setup(sub)
-   hot_posts = subreddit.new(limit= num_submissions)
+   hot_posts = subreddit.hot(limit= num_submissions)
 
    
    for count, post in enumerate(hot_posts):
@@ -173,9 +176,8 @@ def run(mode, sub, num_submissions):
       if count == 25:
          break
       
-
       # setting up formatting for table
-      text += "\n {:20s} | {:20d} | {:20d} | {:20d} | {:20d}".format(ticker.ticker, ticker.count, ticker.bullish, ticker.bearish, ticker.neutral)
+      text += "\n {:20s} | {:<20d} | {:<20d} | {:<20d} | {:<20d}".format(ticker.ticker, ticker.count, ticker.bullish, ticker.bearish, ticker.neutral)
 
    # post to the subreddit if it is in bot mode (i.e. not testing)
    if mode:
@@ -216,8 +218,8 @@ if __name__ == "__main__":
    mode = 0
 
    # default is 2, these are the 2 stickied threads in subreddits like /r/wallstreetbets, /r/stocks, /r/investing, etc..
-   num_submissions = 3
+   num_submissions = 1
 
-   sub = "wallstreetbets"
+   sub = "winkerpack"
 
    run(mode, sub, num_submissions)
