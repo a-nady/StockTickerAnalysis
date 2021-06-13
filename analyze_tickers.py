@@ -63,7 +63,7 @@ def parse_section(ticker_dict, body):
 
    # checks for non-$ formatted comments, splits every body into list of words
    word_list = re.sub("[^\w]", " ",  body).split()
-   #print(word_list)
+
    for word in word_list:
       # check if ticker is in dict already first
       if word in ticker_dict:
@@ -71,7 +71,6 @@ def parse_section(ticker_dict, body):
             ticker_dict[word].bodies.append(body)
       # initial screening of words
       elif word.isupper() and len(word) != 1 and (word not in blacklist_words) and (len(word) <= 5) and word.isalpha() and (word in stocks):
-         
          print(word)
          # add/adjust value of dictionary
          ticker_dict[word] = Ticker(word)
@@ -106,9 +105,8 @@ def setup(sub):
 def retrieve_comments(submission):
    submissionList = []
 
-   submission.comments.replace_more(limit = 200000)
+   submission.comments.replace_more(limit = None)
    for comment in submission.comments.list():
-      #print(comment.body)
       submissionList.append(comment.body)
 
    return submissionList
@@ -136,13 +134,12 @@ def run(mode, sub, num_submissions):
          sys.stdout.write("\rProgress: {0} / {1} posts".format(count + 1, num_submissions))
          sys.stdout.flush()
 
-   text = "{:>20s}".format("Amount of Mentions + Their Sentiment Analysis")
+   text = "{:<20s} {}".format(" ", "Amount of Mentions + Their Sentiment Analysis in /r/" + sub)
    text += "\n {:20s} | {:20s} | {:20s} | {:20s} | {:20s} \n".format("Ticker", "Mentions", "Bullish (%)", "Neutral (%)", "Bearish (%)")
 
    total_mentions = 0
    ticker_list = []
    for key in ticker_dict:
-      # print(key, ticker_dict[key].count)
       total_mentions += ticker_dict[key].count
       ticker_list.append(ticker_dict[key])
 
@@ -163,7 +160,7 @@ def run(mode, sub, num_submissions):
    if mode:
       final_post(subreddit, text)
    else:
-      print("\nTest Mode\n\n*************************************************\n")
+      print("\nTest Mode\n")
       print(text)
 
 class Ticker:
@@ -198,7 +195,7 @@ if __name__ == "__main__":
    mode = 0
    
    # default is 2, these are usually the 2 stickied discussion threads in subreddits like /r/wallstreetbets, /r/stocks, /r/investing, etc..
-   num_submissions = 2
+   num_submissions = 1
 
    sub = "wallstreetbets"
 
