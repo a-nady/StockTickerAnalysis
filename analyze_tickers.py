@@ -10,9 +10,9 @@ from vaderSentiment import SentimentIntensityAnalyzer
 sys.path.insert(0, 'get_all_tickers')
 from get_all_tickers import get_tickers as gt
 
-stocks = gt.get_tickers(NYSE=True, NASDAQ=True, AMEX=True)
+stocks = set(gt.get_tickers(NYSE=True, NASDAQ=True, AMEX=True))
 
-blacklist_words = [
+blacklist_words = {
       "YOLO", "TOS", "CEO", "CFO", "CTO", "DD", "BTFD", "BTD", "WSB", "OK", "RH",
       "KYS", "FD", "TYS", "US", "USA", "IT", "ATH", "RIP", "BMW", "GDP",
       "OTM", "ATM", "ITM", "IMO", "LOL", "DOJ", "BE", "PR", "PC", "ICE",
@@ -24,7 +24,7 @@ blacklist_words = [
       "SEP", "SEPT", "OCT", "NOV", "DEC", "FDA", "IV", "ER", "IPO", "RISE"
       "IPA", "URL", "BUT", "SSN", "USD", "CPU", "AT", "GG", "ELON", "TO", "THE", "MOON",
       "MEME", "MUSK"
-   ]
+}
 
 def extract_ticker(body, start_index):
    """
@@ -192,11 +192,11 @@ class Ticker:
       self.neutral = int(neutral_count / len(self.bodies) * 100)
 
 if __name__ == "__main__":
-   mode = 0
+   writeMode = False
    
    # default is 2, these are usually the 2 stickied discussion threads in subreddits like /r/wallstreetbets, /r/stocks, /r/investing, etc..
    num_submissions = 1
 
    sub = "wallstreetbets"
 
-   run(mode, sub, num_submissions)
+   run(writeMode, sub, num_submissions)
